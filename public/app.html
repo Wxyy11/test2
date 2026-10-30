@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f1f5f9">
+<title>SlipBox</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style type="text/tailwindcss">
+  body { font-family: 'IBM Plex Sans Thai', sans-serif; }
+  .inp { @apply w-full mt-1 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition; }
+  .lbl { @apply text-xs font-medium text-slate-500; }
+  .card { @apply bg-white rounded-3xl border border-slate-200/70 shadow-sm p-5; }
+  .nav-btn { @apply w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition; }
+  .nav-btn.active { @apply bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white shadow-lg shadow-indigo-500/30; }
+  .mnav.active { @apply text-indigo-600 font-semibold; }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+<div class="flex min-h-screen">
+
+  <aside class="hidden md:flex flex-col w-64 shrink-0 h-screen sticky top-0 bg-slate-900 text-slate-300 p-5">
+    <div class="flex items-center gap-3 mb-10">
+      <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-2xl">🧾</div>
+      <div><p class="text-white font-bold text-lg leading-none">SlipBox</p><p class="text-xs text-slate-500">Smart Slip Manager</p></div>
+    </div>
+    <nav class="space-y-1 flex-1">
+      <button class="nav-btn" data-page="dash">📊 <span>ภาพรวม</span></button>
+      <button class="nav-btn" data-page="upload">📸 <span>อัปโหลดสลิป</span></button>
+      <button class="nav-btn" data-page="history">🗂️ <span>ประวัติรายการ</span></button>
+      <button class="nav-btn" data-page="shopping">🛒 <span>รายการที่ต้องซื้อ</span></button>
+      <a href="/admin.html" class="nav-btn admin-only hidden">🛡️ <span>หลังบ้าน (Admin)</span></a>
+    </nav>
+    <div class="border-t border-white/10 pt-4">
+      <p id="sideName" class="text-white font-medium truncate"></p>
+      <p id="sideUser" class="text-xs text-slate-500 mb-3"></p>
+      <button class="logout text-sm text-rose-300 hover:text-rose-200">⎋ ออกจากระบบ</button>
+    </div>
+  </aside>
+
+  <main class="flex-1 min-w-0 pb-28 md:pb-10">
+    <header class="sticky top-0 z-20 bg-slate-100/80 backdrop-blur-lg px-4 md:px-8 py-4 flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <p class="text-xs text-slate-500">สวัสดี 👋</p>
+        <h1 id="hello" class="font-semibold text-lg truncate"></h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <input type="month" id="month" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm">
+        <button class="logout md:hidden w-10 h-10 rounded-xl bg-white border border-slate-200">⎋</button>
+      </div>
+    </header>
+
+    <!-- ===== Dashboard ===== -->
+    <section id="page-dash" class="page px-4 md:px-8 space-y-5">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="rounded-3xl p-5 text-white bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 shadow-xl shadow-indigo-500/20">
+          <p class="text-sm opacity-80">คงเหลือสุทธิ</p>
+          <p id="sBalance" class="text-3xl font-bold mt-1">฿0.00</p>
+          <p id="sCount" class="text-xs opacity-75 mt-2"></p>
+        </div>
+        <div class="card">
+          <div class="flex items-center justify-between"><p class="text-sm text-slate-500">รายรับ</p><span class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">↓</span></div>
+          <p id="sIncome" class="text-2xl font-bold text-emerald-600 mt-2">฿0.00</p>
+        </div>
+        <div class="card">
+          <div class="flex items-center justify-between"><p class="text-sm text-slate-500">รายจ่าย</p><span class="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">↑</span></div>
+          <p id="sExpense" class="text-2xl font-bold text-rose-600 mt-2">฿0.00</p>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-5">
+        <div class="card">
+          <h3 class="font-semibold mb-4">รายจ่ายแยกตามหมวด (ค่าอะไรบ้าง)</h3>
+          <div class="relative h-52"><canvas id="cPie"></canvas></div>
+          <div id="catList" class="mt-5 space-y-3"></div>
+        </div>
+        <div class="card lg:col-span-2">
+          <h3 class="font-semibold mb-4">รายรับ-รายจ่ายรายวัน</h3>
+          <div class="relative h-80"><canvas id="cDaily"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-5">
+        <div class="card lg:col-span-2">
+          <h3 class="font-semibold mb-4">แนวโน้ม 6 เดือนล่าสุด</h3>
+          <div class="relative h-64"><canvas id="cTrend"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="font-semibold">รายการล่าสุด</h3>
+            <button data-page="history" class="text-sm text-indigo-600 hover:underline">ดูทั้งหมด</button>
+          </div>
+          <div id="recent" class="-mx-2"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Upload ===== -->
+    <section id="page-upload" class="page hidden px-4 md:px-8">
+      <div class="grid lg:grid-cols-2 gap-5">
+        <div class="card">
+          <h3 class="font-semibold">อัปโหลดสลิป</h3>
+          <p class="text-sm text-slate-500 mb-4">ถ่ายรูปหรือเลือกภาพสลิป ระบบจะอ่านยอดเงิน วันที่ ธนาคาร และบอกว่าเป็น “ค่าอะไร” ให้อัตโนมัติ</p>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <label class="cursor-pointer rounded-2xl p-4 text-center bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white font-medium shadow-lg shadow-indigo-500/30 active:scale-95 transition">
+              <div class="text-3xl mb-1">📷</div>ถ่ายรูปสลิป
+              <input type="file" accept="image/*" capture="environment" class="hidden" id="fileCam">
+            </label>
+            <label class="cursor-pointer rounded-2xl p-4 text-center bg-slate-900 text-white font-medium active:scale-95 transition">
+              <div class="text-3xl mb-1">🖼️</div>เลือกจากคลังภาพ
+              <input type="file" accept="image/*" class="hidden" id="fileGal">
+            </label>
+          </div>
+          <div id="drop" class="relative rounded-2xl border-2 border-dashed border-slate-300 min-h-[260px] flex items-center justify-center overflow-hidden bg-slate-50 transition">
+            <p id="dropHint" class="text-slate-400 text-sm text-center px-6">หรือลากไฟล์สลิปมาวางที่นี่</p>
+            <img id="preview" class="hidden max-h-[480px] object-contain">
+            <div id="scanning" class="hidden absolute inset-0 bg-slate-900/70 backdrop-blur-sm flex flex-col items-center justify-center text-white">
+              <div class="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <p class="mt-3 font-medium">กำลังอ่านสลิป...</p>
+              <p class="text-xs opacity-70">อาจใช้เวลา 5-20 วินาที</p>
+            </div>
+          </div>
+          <div id="detected" class="flex flex-wrap gap-2 mt-4"></div>
+          <div id="dupWarn" class="hidden mt-3 p-3 rounded-xl bg-amber-50 text-amber-700 text-sm"></div>
+        </div>
+
+        <div class="card">
+          <h3 class="font-semibold mb-4">รายละเอียดรายการ</h3>
+          <form id="slipForm" class="space-y-3"></form>
+          <button form="slipForm" class="w-full mt-5 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white font-semibold shadow-lg shadow-indigo-500/30 hover:opacity-95 active:scale-[.98] transition">💾 บันทึกรายการ</button>
+          <p class="text-xs text-slate-400 mt-2 text-center">ไม่มีสลิป? กรอกข้อมูลเองแล้วกดบันทึกได้เลย</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== History ===== -->
+    <section id="page-history" class="page hidden px-4 md:px-8 space-y-4">
+      <div class="card !p-3 flex flex-col sm:flex-row gap-2">
+        <input id="q" placeholder="🔍 ค้นหาชื่อ / บันทึก / ธนาคาร / เลขอ้างอิง" class="inp !mt-0 flex-1">
+        <select id="fType" class="inp !mt-0 sm:w-40">
+          <option value="">ทุกประเภท</option><option value="income">รายรับ</option><option value="expense">รายจ่าย</option>
+        </select>
+        <select id="fCat" class="inp !mt-0 sm:w-56"></select>
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <div class="card !p-4"><p class="text-xs text-slate-500">รายรับ</p><p id="hIncome" class="font-bold text-emerald-600"></p></div>
+        <div class="card !p-4"><p class="text-xs text-slate-500">รายจ่าย</p><p id="hExpense" class="font-bold text-rose-600"></p></div>
+        <div class="card !p-4"><p class="text-xs text-slate-500">จำนวน</p><p id="hCount" class="font-bold"></p></div>
+      </div>
+      <div id="histList" class="card !p-2"></div>
+    </section>
+
+    <!-- ===== Shopping List ===== -->
+    <section id="page-shopping" class="page hidden px-4 md:px-8 space-y-5">
+      <div class="card">
+        <h3 class="font-semibold mb-1">🛒 รายการที่จะต้องซื้อ</h3>
+        <p class="text-sm text-slate-500 mb-4">จดบันทึกสิ่งของที่วางแผนจะซื้อล่วงหน้า</p>
+        <form id="shopForm" class="flex flex-col sm:flex-row gap-2">
+          <input id="shopTitle" placeholder="ระบุสิ่งที่ต้องซื้อ เช่น ค่าวัตถุดิบทำอาหาร, หูฟังใหม่..." class="inp !mt-0 flex-1" required>
+          <input id="shopAmount" type="number" step="0.01" min="0" placeholder="ราคาประมาณ (บาท)" class="inp !mt-0 sm:w-44">
+          <button class="px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition">เพิ่ม</button>
+        </form>
+      </div>
+      <div class="card">
+        <div class="flex justify-between items-center mb-3">
+          <h4 class="font-semibold text-slate-700">รายการทั้งหมด</h4>
+          <span id="shopTotal" class="text-sm font-medium text-slate-500"></span>
+        </div>
+        <div id="shopList" class="space-y-2"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/90 backdrop-blur-lg border-t border-slate-200 pb-[env(safe-area-inset-bottom)]">
+  <div class="grid grid-cols-4 items-end h-16 text-xs text-slate-500">
+    <button class="mnav flex flex-col items-center gap-0.5 pb-2" data-page="dash"><span class="text-xl">📊</span>ภาพรวม</button>
+    <button class="mnav flex flex-col items-center gap-0.5 pb-2" data-page="history"><span class="text-xl">🗂️</span>ประวัติ</button>
+    <div class="flex justify-center">
+      <button data-page="upload" class="-translate-y-5 w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white text-2xl shadow-xl shadow-indigo-500/40 ring-4 ring-slate-100 active:scale-95 transition">📷</button>
+    </div>
+    <button class="mnav flex flex-col items-center gap-0.5 pb-2" data-page="shopping"><span class="text-xl">🛒</span>ต้องซื้อ</button>
+  </div>
+</nav>
+
+<div id="modal" class="hidden fixed inset-0 z-50 flex items-end md:items-center justify-center"></div>
+
+<datalist id="bankList">
+  <option value="กสิกรไทย (KBank)"><option value="ไทยพาณิชย์ (SCB)"><option value="กรุงไทย (KTB)">
+  <option value="กรุงศรี (BAY)"><option value="กรุงเทพ (BBL)"><option value="ทีทีบี (ttb)">
+  <option value="ออมสิน (GSB)"><option value="ธ.ก.ส. (BAAC)"><option value="TrueMoney"><option value="เงินสด">
+</datalist>
+
+<script src="/js/common.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>

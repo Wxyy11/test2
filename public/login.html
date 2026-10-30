@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#020617">
+<title>SlipBox — เข้าสู่ระบบ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style type="text/tailwindcss">
+  body { font-family: 'IBM Plex Sans Thai', sans-serif; }
+  .inp { @apply w-full mt-1 px-4 py-3 rounded-xl bg-white/10 border border-white/10 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition; }
+  .tab.on { @apply bg-white/15 text-white shadow; }
+</style>
+</head>
+<body class="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4 relative overflow-hidden">
+  <div class="absolute -top-40 -left-40 w-[28rem] h-[28rem] bg-indigo-600/40 rounded-full blur-3xl"></div>
+  <div class="absolute -bottom-40 -right-40 w-[28rem] h-[28rem] bg-fuchsia-600/30 rounded-full blur-3xl"></div>
+
+  <div class="relative w-full max-w-md">
+    <div class="text-center mb-8">
+      <div class="inline-flex w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 items-center justify-center text-3xl shadow-lg shadow-indigo-500/40">🧾</div>
+      <h1 class="text-3xl font-bold mt-4">SlipBox</h1>
+      <p class="text-slate-400 mt-1">เก็บสลิป · อ่านอัตโนมัติ · สรุปรายรับรายจ่าย</p>
+    </div>
+
+    <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
+      <div class="grid grid-cols-2 bg-white/5 rounded-xl p-1 mb-6 text-slate-400">
+        <button id="tabLogin" class="tab on py-2 rounded-lg font-medium transition">เข้าสู่ระบบ</button>
+        <button id="tabReg" class="tab py-2 rounded-lg font-medium transition">สมัครสมาชิก</button>
+      </div>
+      <form id="form" class="space-y-4">
+        <div id="nameWrap" class="hidden">
+          <label class="text-sm text-slate-300">ชื่อ-นามสกุล (ตามบัญชีธนาคาร)</label>
+          <input name="display_name" class="inp" placeholder="เช่น สมชาย ใจดี">
+          <p class="text-xs text-slate-500 mt-1">ใช้ช่วยแยกรายรับ/รายจ่ายจากชื่อในสลิป</p>
+        </div>
+        <div>
+          <label class="text-sm text-slate-300">ชื่อผู้ใช้</label>
+          <input name="username" class="inp" required autocomplete="username" placeholder="username">
+        </div>
+        <div>
+          <label class="text-sm text-slate-300">รหัสผ่าน</label>
+          <input type="password" name="password" class="inp" required autocomplete="current-password" placeholder="••••••">
+        </div>
+        <p id="err" class="hidden text-rose-400 text-sm"></p>
+        <button id="submitBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 font-semibold shadow-lg shadow-indigo-500/30 hover:opacity-90 active:scale-[.98] transition">เข้าสู่ระบบ</button>
+      </form>
+    </div>
+  </div>
+
+<script>
+  fetch('/api/me').then(r => r.ok && (location.href = '/app.html'));
+  let mode = 'login';
+  const f = document.getElementById('form'), err = document.getElementById('err');
+  function setMode(m) {
+    mode = m;
+    tabLogin.classList.toggle('on', m === 'login');
+    tabReg.classList.toggle('on', m === 'register');
+    nameWrap.classList.toggle('hidden', m === 'login');
+    f.elements.display_name.required = m === 'register';
+    submitBtn.textContent = m === 'login' ? 'เข้าสู่ระบบ' : 'สร้างบัญชี';
+    err.classList.add('hidden');
+  }
+  tabLogin.onclick = () => setMode('login');
+  tabReg.onclick = () => setMode('register');
+  f.addEventListener('submit', async e => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    try {
+      const res = await fetch('/api/' + mode, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(new FormData(f))),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error);
+      location.href = d.role === 'admin' ? '/admin.html' : '/app.html';
+    } catch (ex) {
+      err.textContent = ex.message; err.classList.remove('hidden');
+    } finally { submitBtn.disabled = false; }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SlipBox Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style type="text/tailwindcss">
+  body { font-family: 'IBM Plex Sans Thai', sans-serif; }
+  .inp { @apply w-full mt-1 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500; }
+  .lbl { @apply text-xs font-medium text-slate-500; }
+  .card { @apply bg-white rounded-3xl border border-slate-200/70 shadow-sm p-5; }
+  .tab-btn { @apply w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition whitespace-nowrap; }
+  .tab-btn.active { @apply bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white shadow-lg; }
+  .mtab.active { @apply bg-slate-900 text-white; }
+  .act { @apply px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 transition; }
+  th { @apply text-left text-xs font-semibold text-slate-500 py-3 px-3 whitespace-nowrap; }
+  td { @apply py-3 px-3 text-sm; }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+<div class="flex min-h-screen">
+  <aside class="hidden md:flex flex-col w-64 shrink-0 h-screen sticky top-0 bg-slate-900 text-slate-300 p-5">
+    <div class="flex items-center gap-3 mb-10">
+      <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-indigo-500 flex items-center justify-center text-2xl">🛡️</div>
+      <div><p class="text-white font-bold text-lg leading-none">SlipBox</p><p class="text-xs text-slate-500">Admin Console</p></div>
+    </div>
+    <nav class="space-y-1 flex-1">
+      <button class="tab-btn" data-tab="overview">📈 ภาพรวมระบบ</button>
+      <button class="tab-btn" data-tab="users">👥 จัดการผู้ใช้</button>
+      <button class="tab-btn" data-tab="slips">🧾 สลิปทั้งหมด</button>
+      <button class="tab-btn" data-tab="cats">🏷️ หมวดหมู่ & คำค้น</button>
+    </nav>
+    <a href="/app.html" class="tab-btn">↩ กลับหน้าผู้ใช้</a>
+    <button class="logout tab-btn text-rose-300">⎋ ออกจากระบบ</button>
+  </aside>
+
+  <main class="flex-1 min-w-0 p-4 md:p-8 space-y-5">
+    <div class="md:hidden flex gap-2 overflow-x-auto pb-1 text-sm">
+      <button class="mtab px-4 py-2 rounded-xl bg-white whitespace-nowrap" data-tab="overview">📈 ภาพรวม</button>
+      <button class="mtab px-4 py-2 rounded-xl bg-white whitespace-nowrap" data-tab="users">👥 ผู้ใช้</button>
+      <button class="mtab px-4 py-2 rounded-xl bg-white whitespace-nowrap" data-tab="slips">🧾 สลิป</button>
+      <button class="mtab px-4 py-2 rounded-xl bg-white whitespace-nowrap" data-tab="cats">🏷️ หมวดหมู่</button>
+      <a href="/app.html" class="px-4 py-2 rounded-xl bg-white whitespace-nowrap">↩ กลับ</a>
+    </div>
+
+    <!-- Overview -->
+    <section id="tab-overview" class="tab space-y-5">
+      <h1 class="text-2xl font-bold">ภาพรวมระบบ</h1>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="rounded-3xl p-5 text-white bg-gradient-to-br from-indigo-600 to-fuchsia-600 shadow-xl">
+          <p class="text-sm opacity-80">ผู้ใช้ทั้งหมด</p><p id="aUsers" class="text-3xl font-bold mt-1"></p><p id="aUsersSub" class="text-xs opacity-75 mt-1"></p>
+        </div>
+        <div class="card"><p class="text-sm text-slate-500">สลิปทั้งหมด</p><p id="aSlips" class="text-2xl font-bold mt-1"></p><p id="aToday" class="text-xs text-indigo-600 mt-1"></p></div>
+        <div class="card"><p class="text-sm text-slate-500">รายรับรวมทั้งระบบ</p><p id="aIncome" class="text-xl font-bold text-emerald-600 mt-1"></p></div>
+        <div class="card"><p class="text-sm text-slate-500">รายจ่ายรวมทั้งระบบ</p><p id="aExpense" class="text-xl font-bold text-rose-600 mt-1"></p></div>
+      </div>
+      <div class="grid lg:grid-cols-3 gap-5">
+        <div class="card lg:col-span-2"><h3 class="font-semibold mb-4">จำนวนสลิปที่อัปโหลด (14 วันล่าสุด)</h3><div class="relative h-72"><canvas id="cAdmin"></canvas></div></div>
+        <div class="card"><h3 class="font-semibold mb-4">ผู้ใช้ที่ใช้งานมากที่สุด</h3><div id="topUsers" class="space-y-3"></div></div>
+      </div>
+    </section>
+
+    <!-- Users -->
+    <section id="tab-users" class="tab hidden space-y-5">
+      <h1 class="text-2xl font-bold">จัดการผู้ใช้</h1>
+      <div class="card !p-0 overflow-x-auto">
+        <table class="w-full min-w-[900px]">
+          <thead class="bg-slate-50"><tr><th>ผู้ใช้</th><th>สิทธิ์</th><th>สถานะ</th><th class="!text-right">สลิป</th><th class="!text-right">รายรับ</th><th class="!text-right">รายจ่าย</th><th>ใช้งานล่าสุด</th><th class="!text-right">จัดการ</th></tr></thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Slips -->
+    <section id="tab-slips" class="tab hidden space-y-5">
+      <h1 class="text-2xl font-bold">สลิปทั้งหมด</h1>
+      <div class="card !p-3 flex flex-col sm:flex-row gap-2">
+        <select id="slipUser" class="inp !mt-0 sm:w-72"></select>
+        <input type="month" id="slipMonth" class="inp !mt-0 sm:w-48">
+      </div>
+      <div class="card !p-0 overflow-x-auto">
+        <table class="w-full min-w-[800px]">
+          <thead class="bg-slate-50"><tr><th>สลิป</th><th>ผู้ใช้</th><th>วันที่</th><th>หมวด</th><th>ธนาคาร</th><th>บันทึก</th><th class="!text-right">จำนวนเงิน</th></tr></thead>
+          <tbody id="slipsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Categories -->
+    <section id="tab-cats" class="tab hidden space-y-5">
+      <h1 class="text-2xl font-bold">หมวดหมู่ & คำค้นสำหรับเดา “ค่าอะไร”</h1>
+      <div class="grid lg:grid-cols-3 gap-5">
+        <form id="catForm" class="card space-y-3 h-fit">
+          <h3 id="catFormTitle" class="font-semibold">เพิ่มหมวดหมู่</h3>
+          <input type="hidden" name="id">
+          <div class="grid grid-cols-4 gap-2">
+            <div><label class="lbl">ไอคอน</label><input name="icon" class="inp text-center" value="📦"></div>
+            <div class="col-span-3"><label class="lbl">ชื่อหมวด</label><input name="name" class="inp" required></div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div><label class="lbl">ประเภท</label><select name="type" class="inp"><option value="expense">รายจ่าย</option><option value="income">รายรับ</option></select></div>
+            <div><label class="lbl">สี</label><input type="color" name="color" class="inp h-[46px] p-1" value="#6366f1"></div>
+          </div>
+          <div><label class="lbl">คำค้น (คั่นด้วย , ) — ถ้าเจอคำเหล่านี้ในสลิปจะจัดเข้าหมวดนี้</label>
+            <textarea name="keywords" rows="4" class="inp" placeholder="เช่น grab,bolt,ปตท"></textarea></div>
+          <div class="flex gap-2">
+            <button type="button" id="catCancel" class="hidden px-4 py-2.5 rounded-xl bg-slate-100">ยกเลิก</button>
+            <button class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white font-medium">บันทึก</button>
+          </div>
+        </form>
+        <div id="catList" class="lg:col-span-2 grid sm:grid-cols-2 gap-3 h-fit"></div>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="/js/common.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>
